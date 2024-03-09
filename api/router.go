@@ -1,7 +1,9 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jzksnsjswkw/wecom-push"
@@ -12,29 +14,54 @@ var router *gin.Engine
 func init() {
 	r := gin.Default()
 
-	r.POST("", func(ctx *gin.Context) {
+	r.POST("/:touser/:agentID", func(ctx *gin.Context) {
 		s := struct {
-			Corpid     string `json:"corpid" binding:"required"`
-			Corpsecret string `json:"corpsecret" binding:"required"`
-			Touser     string `json:"touser"`
-			AgentID    int    `json:"agentID" binding:"required"`
-			Content    string `json:"content" binding:"required"`
+			// AppID      string `json:"appID"`
+			// AppName string `json:"appName"`
+			// DeviceName string `json:"deviceName"`
+
+			Title    string `json:"title"`
+			// Subtitle string `json:"subtitle"`
+			Message  string `json:"message"`
+
+			// Date  string `json:"date"`
+			// Image string `json:"image"`
+			// Icon string `json:"icon"`
 		}{}
-		if err := ctx.BindJSON(&s); err != nil {
+		if err := ctx.ShouldBindJSON(&s); err != nil {
+			ctx.String(http.StatusBadRequest, "invalid body")
 			return
 		}
-		w := wecom.New(s.Corpid, s.Corpsecret)
+		s2 := struct {
+			Touser  string `uri:"touser"`
+			AgentID int    `uri:"agentID"`
+		}{}
+		if err := ctx.ShouldBindUri(&s2); err != nil {
+			ctx.String(http.StatusBadRequest, "invalid uri")
+			return
+		}
+
+		auth := ctx.GetHeader("Authorization")
+		if auth == "" {
+			ctx.String(http.StatusBadRequest, "authorization is empty")
+			return
+		}
+		ss := strings.Split(auth, ":")
+		if len(ss) != 2 {
+			ctx.String(http.StatusBadRequest, "invalid Authorization")
+			return
+		}
+
+		w := wecom.New(ss[0], ss[1])
 		err := w.Text(&wecom.TextInfo{
-			Touser:  s.Touser,
-			AgentID: s.AgentID,
-			Content: s.Content,
+			Touser:  s2.Touser,
+			AgentID: s2.AgentID,
+			Content: fmt.Sprintf("%s\n%s", s.Title, s.Message),
 		})
 		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{
-				"err": err.Error(),
-			})
+			ctx.String(http.StatusInternalServerError, err.Error())
 		}
-		ctx.Status(http.StatusOK)
+		ctx.String(http.StatusOK, "OK")
 	})
 }
 
