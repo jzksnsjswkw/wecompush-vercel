@@ -12,17 +12,17 @@ import (
 var router *gin.Engine
 
 func init() {
-	r := gin.Default()
+	router = gin.Default()
 
-	r.POST("/:touser/:agentID", func(ctx *gin.Context) {
+	router.POST("/:touser/:agentID", func(ctx *gin.Context) {
 		s := struct {
 			// AppID      string `json:"appID"`
 			// AppName string `json:"appName"`
 			// DeviceName string `json:"deviceName"`
 
-			Title    string `json:"title"`
+			Title string `json:"title"`
 			// Subtitle string `json:"subtitle"`
-			Message  string `json:"message"`
+			Message string `json:"message"`
 
 			// Date  string `json:"date"`
 			// Image string `json:"image"`
